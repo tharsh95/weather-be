@@ -128,19 +128,6 @@ export const buildCityControllers = (weatherService: WeatherService) => {
     });
   });
 
-  const getPopularCities = TryCatch(async (req: Request, res: Response, _next: NextFunction) => {
-    const { limit } = req.query as { limit?: string };
-    const limitNum = limit ? parseInt(limit) : 10;
-    const cities = await weatherService.getPopularCities(limitNum);
-    res.json({ success: true, data: cities });
-  });
-
-  const getRecentlySearched = TryCatch(async (req: Request, res: Response, _next: NextFunction) => {
-    const { limit } = req.query as { limit?: string };
-    const limitNum = limit ? parseInt(limit) : 10;
-    const cities = await weatherService.getRecentlySearchedCities(limitNum);
-    res.json({ success: true, data: cities });
-  });
-
-  return { searchCity, autoSuggest, addCity, getPopularCities, getRecentlySearched };
+  
+  return { searchCity, autoSuggest, addCity };
 };
