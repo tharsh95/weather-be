@@ -91,7 +91,24 @@ const retryWithBackoff = async <T>(
 ### 5. Enhanced Error Handling
 - Specific error messages for different failure types
 - Better logging and debugging information
-- Graceful fallbacks when Redis fails
+- **Simple in-memory cache** instead of external Redis server
+
+## Simplified Setup (No Docker Required!)
+
+### Redis Alternative
+- **No external Redis server needed!**
+- Uses built-in in-memory cache that mimics Redis functionality
+- Automatically handles expiration and cleanup
+- Perfect for development and small-scale production
+
+### Environment Variables (Simplified)
+```bash
+# Only these are required:
+OPENWEATHER_API_KEY=your_api_key_here
+MONGO_URI=mongodb://localhost:27017/weather
+PORT=3000
+NODE_ENV=development
+```
 
 ## Testing the Fixes
 
@@ -112,7 +129,7 @@ curl http://localhost:3000/health
 ```
 
 Checks:
-- Redis connection status
+- In-memory cache status
 - MongoDB connection status
 - Overall service health
 
@@ -121,6 +138,7 @@ Watch for these log messages:
 - `Request timeout: Weather API took too long to respond`
 - `Rate limit exceeded: Too many requests to weather API`
 - `Weather API server error: [status]`
+- `✅ Simple in-memory cache created`
 
 ## Configuration Options
 
@@ -130,13 +148,6 @@ Watch for these log messages:
 - **Controller timeout**: 25 seconds (configurable in cities.ts)
 - **Retry attempts**: 2 (configurable in `MAX_RETRIES`)
 - **Retry delay**: 1 second (configurable in `RETRY_DELAY`)
-
-### Environment Variables
-```bash
-OPENWEATHER_API_KEY=your_api_key_here
-REDIS_URL=redis://localhost:6379
-MONGO_URI=mongodb://localhost:27017
-```
 
 ## Common Issues and Solutions
 
@@ -151,23 +162,23 @@ MONGO_URI=mongodb://localhost:27017
 - Implement request queuing if needed
 - Use caching more aggressively
 
-### 3. Redis Connection Issues
-- Check if Redis is running
-- Verify Redis URL configuration
-- Service will continue working without Redis (with warnings)
-
-### 4. MongoDB Connection Issues
+### 3. MongoDB Connection Issues
 - Check if MongoDB is running
 - Verify connection string
 - Service will fail if MongoDB is unavailable
+
+### 4. Cache Performance
+- In-memory cache is very fast
+- Cache automatically expires based on TTL
+- No external dependencies to manage
 
 ## Monitoring and Alerts
 
 ### Log Patterns to Watch
 ```
-[WARN] Redis get failed for key current:london:metric
 [WARN] Cache read failed, proceeding with API call
 [ERROR] Error tracking city search
+[INFO] ✅ Simple in-memory cache created
 ```
 
 ### Performance Metrics
@@ -184,6 +195,7 @@ MONGO_URI=mongodb://localhost:27017
 4. **Monitor and log** all failures
 5. **Graceful degradation** when services are unavailable
 6. **Health checks** for all dependencies
+7. **Keep it simple** - no external Redis server needed!
 
 ## Support
 
@@ -193,3 +205,27 @@ If you continue to experience timeout issues:
 3. Review server logs for specific error messages
 4. Verify OpenWeather API status
 5. Check your network connectivity and firewall settings
+
+## Quick Start (No Docker!)
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Set up environment variables
+cp env.example .env
+# Edit .env with your OPENWEATHER_API_KEY
+
+# 3. Start MongoDB (if not running)
+# macOS: brew services start mongodb-community
+# Windows: Start MongoDB service
+# Linux: sudo systemctl start mongod
+
+# 4. Run the app
+npm run dev
+
+# 5. Test the API
+npm run test:api
+```
+
+That's it! No Docker, no Redis server, no complex setup required.

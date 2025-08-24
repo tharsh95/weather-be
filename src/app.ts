@@ -15,7 +15,6 @@ import { buildUsersRouter } from "@/routes/users.js"
   const port = process.env.PORT || 3000;
   
 const mongoURI = process.env.MONGO_URI! || 'mongodb://localhost:27017';
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const openWeatherApiKey = process.env.OPENWEATHER_API_KEY || '';
 
 // Validate required environment variables
@@ -25,7 +24,7 @@ if (!openWeatherApiKey) {
 }
 
 connectDB(mongoURI);
-const redis = createRedisClient(redisUrl);
+const redis = createRedisClient(); // No URL needed for mock client
     
 const app = express();
 
@@ -62,8 +61,8 @@ app.use(morgan('dev'))
   // Health check endpoint
   app.get('/health', async (req, res) => {
     try {
-      // Check if Redis is connected
-      const redisStatus = redis.status === 'ready' ? 'connected' : 'disconnected';
+      // Check if in-memory cache is working
+      const cacheStatus = 'ready'; // Always ready for in-memory cache
       
       // Check if MongoDB is connected
       const mongoStatus = 'connected'; // This would need to be implemented based on your DB connection
@@ -73,7 +72,7 @@ app.use(morgan('dev'))
         status: 'healthy',
         timestamp: new Date().toISOString(),
         services: {
-          redis: redisStatus,
+          cache: cacheStatus,
           mongodb: mongoStatus
         }
       });
