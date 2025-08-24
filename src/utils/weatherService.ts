@@ -1,6 +1,6 @@
 import axios from "axios";
-import type Redis from "ioredis";
 import { City } from "@/models/city.js";
+import type { CacheClient } from "@/types/cache.js";
 
 const DEFAULT_UNITS = "metric";
 // Add timeout configuration for axios requests
@@ -40,7 +40,7 @@ const buildKey = (prefix: string, city: string, country?: string, units?: string
 };
 
 export class WeatherService {
-  constructor(private readonly redis: Redis, private readonly apiKey: string) {}
+  constructor(private readonly redis: CacheClient, private readonly apiKey: string) {}
 
   // Safe Redis methods with fallbacks
   private async safeRedisGet(key: string): Promise<string | null> {
@@ -54,9 +54,9 @@ export class WeatherService {
 
   private async safeRedisSet(key: string, value: string, expiry: string): Promise<void> {
     try {
-      await this.redis.set(key, value, "EX", expiry);
+      await this.redis.set(key, value, expiry);
     } catch (error) {
-      console.warn(`Redis set failed for key ${key}:`, error);
+      console.warn(`Cache set failed for key ${key}:`, error);
     }
   }
 

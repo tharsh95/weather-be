@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { buildUserControllers } from "@/controllers/users.js";
 import { WeatherService } from "@/utils/weatherService.js";
-import type Redis from "ioredis";
+import type { CacheClient } from "@/types/cache.js";
 
-export const buildUsersRouter = (redis: Redis, apiKey: string) => {
+export const buildUsersRouter = (redis: CacheClient, apiKey: string) => {
   const router = Router();
   const weatherService = new WeatherService(redis, apiKey);
   const { 
