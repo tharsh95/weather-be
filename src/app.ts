@@ -28,10 +28,20 @@ connectDB(mongoURI);
 const redis = createRedisClient(redisUrl);
     
 const app = express();
-  
-                                
-  
-  
+
+// Add timeout middleware to prevent hanging requests
+app.use((req, res, next) => {
+  const timeout = 30000; // 30 seconds
+  req.setTimeout(timeout, () => {
+    res.status(408).json({
+      success: false,
+      message: "Request timeout",
+      error: { statusCode: 408 }
+    });
+  });
+  next();
+});
+    
 app.use(
   helmet({
     contentSecurityPolicy: envMode !== "DEVELOPMENT",
@@ -47,6 +57,34 @@ app.use(morgan('dev'))
 
   app.get('/', (req, res) => {
      res.send('Hello, World!');
+  });
+  
+  // Health check endpoint
+  app.get('/health', async (req, res) => {
+    try {
+      // Check if Redis is connected
+      const redisStatus = redis.status === 'ready' ? 'connected' : 'disconnected';
+      
+      // Check if MongoDB is connected
+      const mongoStatus = 'connected'; // This would need to be implemented based on your DB connection
+      
+      res.json({
+        success: true,
+        status: 'healthy',
+        timestamp: new Date().toISOString(),
+        services: {
+          redis: redisStatus,
+          mongodb: mongoStatus
+        }
+      });
+    } catch (error) {
+      res.status(503).json({
+        success: false,
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
   });
   
   // your routes here

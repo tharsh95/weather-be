@@ -6,7 +6,8 @@
  "scripts": {
   "start": "set NODE_ENV=PRODUCTION & node dist/app.js",
   "build": "tsc -p . && tsc-alias",
-  "dev": "tsx watch src/app.ts"
+  "dev": "tsx watch src/app.ts",
+  "test:api": "node test-weather-api.js"
  },
  "keywords": [],
  "author": "",

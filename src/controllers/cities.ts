@@ -10,46 +10,61 @@ export const buildCityControllers = (weatherService: WeatherService) => {
     const cityName = capitalize(city)
     if (!city) throw new ErrorHandler(400, "city is required");
 
-    const current = await weatherService.getCurrentByCity(cityName, country, units);
-    const forecast = await weatherService.getForecastByCity(cityName, country, units);
-    
-    // Use case-insensitive search for city names
-    let cityDoc = await City.findOne({
-      name: { $regex: new RegExp(`^${cityName}$`, 'i') }
+    // Add timeout promise to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 25000); // 25 seconds
     });
-    
-    // If city doesn't exist in DB, add it automatically
-    if (!cityDoc) {
-      console.log(`City ${cityName} not found in DB, adding it automatically`);
+
+    try {
+      // Race between weather data fetch and timeout
+      const [current, forecast] = await Promise.race([
+        Promise.all([
+          weatherService.getCurrentByCity(cityName, country, units),
+          weatherService.getForecastByCity(cityName, country, units)
+        ]),
+        timeoutPromise
+      ]) as [any, any];
       
-      // Extract state from country if it's in format "City, State"
-     
-      
-      // Create new city document
-      cityDoc = new City({
-        name: cityName,
-        state: current?.sys.country,
-        searchCount: 1,
-        lastSearched: new Date()
+      // Use case-insensitive search for city names
+      let cityDoc = await City.findOne({
+        name: { $regex: new RegExp(`^${cityName}$`, 'i') }
       });
       
-      await cityDoc.save();
-      console.log(`City ${cityName} added to database with ID: ${cityDoc._id}`);
-    } else {
-      await cityDoc.save();
-    }
-    
-    res.json({ 
-      success: true, 
-      data: { 
-        id: cityDoc._id,
-        city: current.name,
-        country: current.sys?.country,
-        state: cityDoc.state,
-        current,
-        forecast
+      // If city doesn't exist in DB, add it automatically
+      if (!cityDoc) {
+        console.log(`City ${cityName} not found in DB, adding it automatically`);
+        
+        // Create new city document
+        cityDoc = new City({
+          name: cityName,
+          state: current?.sys.country,
+          searchCount: 1,
+          lastSearched: new Date()
+        });
+        
+        await cityDoc.save();
+        console.log(`City ${cityName} added to database with ID: ${cityDoc._id}`);
+      } else {
+        await cityDoc.save();
       }
-    });
+      
+      res.json({ 
+        success: true, 
+        data: { 
+          id: cityDoc._id,
+          city: current.name,
+          country: current.sys?.country,
+          state: cityDoc.state,
+          current,
+          forecast
+        }
+      });
+    } catch (error: any) {
+      if (error.message === 'Request timeout') {
+        throw new ErrorHandler(408, "Request timeout: Weather data took too long to fetch");
+      }
+      throw error;
+    }
   });
 
   const autoSuggest = TryCatch(async (req: Request, res: Response, _next: NextFunction) => {
